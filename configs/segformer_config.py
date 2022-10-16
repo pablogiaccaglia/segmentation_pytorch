@@ -17,12 +17,12 @@ config.DATASET.INPUT_PATTERN = '*_leftImg8bit.png'
 config.DATASET.ANNOT_PATTERN = '*_gtFine_labelIds.png'
 config.DATASET.IMAGE_DIR = 'leftImg8bit'
 config.DATASET.LABEL_DIR = 'gtFine'
-config.DATASET.NUM_CLASSES = 19
+config.DATASET.NUM_CLASSES = 2
 config.DATASET.IGNORE_LABEL = 255
 config.DATASET.MEAN = [0.485, 0.456, 0.406]
 config.DATASET.STD = [0.229, 0.224, 0.225]
-config.DATASET.BASE_SIZE = (1024, 2048)
-config.DATASET.CROP_SIZE = (1024, 1024) # (768, 768)
+config.DATASET.BASE_SIZE = (256, 256)
+config.DATASET.CROP_SIZE = (256, 256) # (768, 768)
 
 
 config.TRAIN = CN()
