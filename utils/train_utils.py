@@ -78,7 +78,7 @@ class CrossEntropy(nn.Module):
 
 class BinaryCrossEntropy(nn.Module):
     def __init__(self, ignore_label=-1, weight=None):
-        super(BCELoss, self).__init__()
+        super(BinaryCrossEntropy, self).__init__()
         self.ignore_label = ignore_label
         self.criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_label)
         self.class_weights = weight
