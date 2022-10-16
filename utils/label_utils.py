@@ -54,7 +54,7 @@ def get_labels():
     labels = [
     #       name                     id    trainId   category            catId     hasInstances   ignoreInEval   color
     Label(  'unlabeled'            ,  0 ,      0 , 'void'            , 0       , False        , True         , (  0,  0,  0) ),
-    Label(  'cancer'               ,  1 ,      255 , 'human'           , 6       , True         , False        , (220, 20, 60) ),
+    Label(  'cancer'               ,  1 ,      1 , 'human'           , 6       , True         , False        , (220, 20, 60) ),
     ]
     
     return labels
