@@ -93,24 +93,6 @@ class BinaryCrossEntropy(nn.Module):
         weights = [1]
         assert len(weights) == len(score)
         return sum([w * self._forward(x, target) for (w, x) in zip(weights, score)])
-
-class FocalTverskyLoss(nn.Module):
-    def __init__(self, ignore_label=-1, weight=None):
-        super(FocalTverskyLoss, self).__init__()
-        self.ignore_label = ignore_label
-        self.criterion = nn.(weight=weight, ignore_index=ignore_label)
-        self.class_weights = weight
-
-    def _forward(self, score, target):
-        loss = self.criterion(score, target)
-        return loss
-
-    def forward(self, score, target):
-        score = [score]
-        weights = [1]
-        assert len(weights) == len(score)
-        return sum([w * self._forward(x, target) for (w, x) in zip(weights, score)])
-
     
 def create_logger(cfg, cfg_name, phase='train'):
     root_output_dir = Path(os.path.join(os.getcwd(), cfg.OUTPUT_DIR))
