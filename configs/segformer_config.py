@@ -26,7 +26,7 @@ config.DATASET.CROP_SIZE = (256, 256) # (768, 768)
 
 
 config.TRAIN = CN()
-config.TRAIN.EPOCHS = 400
+config.TRAIN.EPOCHS = 20
 config.TRAIN.DECAY_STEPS = 160000
 config.TRAIN.BATCH_SIZE = 8
 config.TRAIN.ACCUM_STEPS = 4
