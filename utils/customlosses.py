@@ -10,7 +10,7 @@ class FocalTverskyLoss(nn.Module):
         self.gamma = gamma
         self.smooth = smooth
 
-    def forward(self, inputs, targets):
+    def _forward(self, inputs, targets):
         # comment out if your model contains a sigmoid or equivalent activation layer
         inputs = F.sigmoid(inputs)
 
@@ -27,3 +27,9 @@ class FocalTverskyLoss(nn.Module):
         FocalTversky = (1 - Tversky) ** self.gamma
 
         return FocalTversky
+
+    def forward(self, score, target):
+        score = [score]
+        weights = [1]
+        assert len(weights) == len(score)
+        return sum([w * self._forward(x, target) for (w, x) in zip(weights, score)])
