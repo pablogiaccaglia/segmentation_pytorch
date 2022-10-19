@@ -231,7 +231,7 @@ class Segformer(nn.Module):
         img_size=1024, 
         patch_size=4, 
         in_chans=3, 
-        num_classes=19, 
+        num_classes=1,
         embed_dims=[64, 128, 256, 512],
         num_heads=[1, 2, 5, 8], 
         mlp_ratios=[4, 4, 4, 4], 
