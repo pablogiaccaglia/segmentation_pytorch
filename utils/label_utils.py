@@ -52,9 +52,8 @@ def get_labels():
     # Note that many IDs are ignored in evaluation and thus you never need to predict these!
 
     labels = [
-    #       name                     id    trainId   category            catId     hasInstances   ignoreInEval   color
-    Label(  'unlabeled'            ,  0 ,      0 , 'void'            , 0       , False        , True         , (  0,  0,  0) ),
-    Label(  'cancer'               ,  1 ,      1 , 'human'           , 6       , True         , False        , (220, 20, 60) ),
+    #       name                     id    trainId   category            catId     hasInstances   ignoreInEval   colo
+    Label(  'cancer'               ,  1 ,      1 , 'human'           , 6       , True         , False        , (220, 20, 60) )
     ]
     
     return labels
