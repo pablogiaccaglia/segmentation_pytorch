@@ -53,7 +53,8 @@ def get_labels():
 
     labels = [
     #       name                     id    trainId   category            catId     hasInstances   ignoreInEval   colo
-    Label(  'cancer'               ,   1,      0 , 'human'           , 6       , True         , False        , (220, 20, 60) )
+    Label(  'cancer'               ,   0,      1 , 'human'           , 6       , True         , False        , (220, 20, 60) ),
+    Label('ground', 1, 0, 'human', 7, True, False, (220, 20, 60))
     ]
     
     return labels
