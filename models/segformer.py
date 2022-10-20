@@ -440,8 +440,9 @@ class Segformer(nn.Module):
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
-        
+        x = torch.sigmoid(x)
         x = F.interpolate(input = x, size = (h_out, w_out), mode = 'bilinear', align_corners = False)
+
         x = x.type(torch.float32)
     
         return x
