@@ -59,7 +59,7 @@ class Attention(nn.Module):
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = ((qk_scale or head_dim)*0.5) ** -0.5
-        self.scale = nn.Parameter(self.scale, requires_grad = True)
+        self.scale = nn.Parameter(torch.Tensor(self.scale), requires_grad = True)
 
         self.q = nn.Linear(dim, dim, bias=qkv_bias)
         self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
