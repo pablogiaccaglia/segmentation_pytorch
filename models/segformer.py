@@ -58,7 +58,8 @@ class Attention(nn.Module):
         self.dim = dim
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = qk_scale or head_dim ** -0.5
+        self.scale = ((qk_scale or head_dim)*0.5) ** -0.5
+        self.scale = nn.Parameter(self.scale, requires_grad = True)
 
         self.q = nn.Linear(dim, dim, bias=qkv_bias)
         self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
@@ -440,9 +441,9 @@ class Segformer(nn.Module):
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
-        x = torch.sigmoid(x)
-        x = F.interpolate(input = x, size = (h_out, w_out), mode = 'bilinear', align_corners = False)
 
+        x = F.interpolate(input = x, size = (h_out, w_out), mode = 'bilinear', align_corners = False)
+        x = torch.sigmoid(x)
         x = x.type(torch.float32)
     
         return x

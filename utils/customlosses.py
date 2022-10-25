@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 
 class FocalTverskyLoss(nn.Module):
-    def __init__(self, alpha = 0.5, beta = 0.5, gamma = 1, smooth = 1):
+    def __init__(self, alpha = 0.8, beta = 0.2, gamma = 2, smooth = 1):
         super(FocalTverskyLoss, self).__init__()
         self.alpha = alpha
         self.beta = beta
@@ -24,6 +24,7 @@ class FocalTverskyLoss(nn.Module):
         FN = (targets * (1 - inputs)).sum()
 
         Tversky = (TP + self.smooth) / (TP + self.alpha * FP + self.beta * FN + self.smooth)
+
         FocalTversky = (1 - Tversky) ** self.gamma
 
         return FocalTversky
