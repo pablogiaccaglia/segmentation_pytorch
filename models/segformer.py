@@ -341,7 +341,7 @@ class PatchEncoder(nn.Module):
         self.position_embedding = nn.Embedding(
             num_embeddings=num_patches, embedding_dim=embed_dim, device = device
         )#
-        self.positions = torch.arange(start=0, end=self.num_patches, step=1)
+        self.positions = torch.arange(start=0, end=self.num_patches, step=1, device = device)
 
     def forward(self, encoded_patches):
         encoded_positions = self.position_embedding(self.positions)
