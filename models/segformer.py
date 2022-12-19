@@ -320,8 +320,9 @@ class ShiftedPatchTokenization(nn.Module):
             self.patch_size,
             self.patch_size
         )
-        print(patches.shape)
+
         flat_patches = torch.reshape(patches, (-1,))
+        print(flat_patches.shape)
         if not self.vanilla:
             # Layer normalize the flat patches and linearly project it
             tokens = self.layer_norm(flat_patches)
