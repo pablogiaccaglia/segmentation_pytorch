@@ -337,8 +337,8 @@ class PatchEncoder(nn.Module):
         self.num_patches = num_patches
         self.position_embedding = nn.Embedding(
             num_embeddings=num_patches, embedding_dim=embed_dim
-        )
-        self.positions = torch.range(start=0, end=self.num_patches, step=1)
+        )#
+        self.positions = torch.arange(start=0, end=self.num_patches, step=1)
 
     def forward(self, encoded_patches):
         encoded_positions = self.position_embedding(self.positions)
