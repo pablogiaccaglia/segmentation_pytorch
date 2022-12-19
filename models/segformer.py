@@ -419,7 +419,6 @@ class Segformer(nn.Module):
             self.patch_embed2 = ShiftedPatchTokenization(
                     img_size = img_size // 4,
                     patch_size = 3,
-                    stride = 2,
                     in_chans = embed_dims[0],
                     embed_dim = embed_dims[1]
             )
@@ -432,7 +431,6 @@ class Segformer(nn.Module):
             self.patch_embed3 = ShiftedPatchTokenization(
                     img_size = img_size // 8,
                     patch_size = 3,
-                    stride = 2,
                     in_chans = embed_dims[1],
                     embed_dim = embed_dims[2]
             )
@@ -444,7 +442,6 @@ class Segformer(nn.Module):
             self.patch_embed4 = ShiftedPatchTokenization(
                     img_size = img_size // 16,
                     patch_size = 3,
-                    stride = 2,
                     in_chans = embed_dims[2],
                     embed_dim = embed_dims[3]
             )
