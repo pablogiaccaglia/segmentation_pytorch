@@ -215,6 +215,7 @@ def pad_to_bounding_box(
     im = torch.ones((image.shape[0], image.shape[1], target_height, target_width))
     im = im.cuda()
     im = im * image.min()
+    print(im.shape)
     im[:, :, offset_height:image.shape[2], offset_width:image.shape[3]] = image
 
     return im
