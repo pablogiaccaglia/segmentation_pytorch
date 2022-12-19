@@ -240,7 +240,7 @@ class ShiftedPatchTokenization(nn.Module):
         self.patch_size = patch_size
         self.half_patch = patch_size // 2
         self.num_patches = (img_size // patch_size) ** 2
-        self.flattened_dim = patch_size * patch_size * in_chans * self.num_patches
+        self.flattened_dim = 5*patch_size * patch_size * in_chans * self.num_patches
         self.projection = torch.nn.Linear(self.flattened_dim, embed_dim)
         self.layer_norm = torch.nn.LayerNorm(self.flattened_dim, eps = layer_norm_eps)
 
