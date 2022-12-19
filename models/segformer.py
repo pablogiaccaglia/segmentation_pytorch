@@ -10,7 +10,7 @@ from timm.models.vision_transformer import _cfg
 from models.segformer_utils.logger import get_root_logger
 from mmcv.runner import load_checkpoint
 from kornia.contrib import extract_tensor_patches, combine_tensor_patches
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features = None, out_features = None, act_layer = nn.GELU, drop = 0.):
         super().__init__()
@@ -213,7 +213,8 @@ def pad_to_bounding_box(
         target_width,
 ):
     im = torch.ones((image.shape[0], image.shape[1], target_height, target_width))
-    im = im.cuda()
+    if device == 'cuda':
+        im = im.cuda()
     im = im * image.min()
     im[:, :, offset_height:image.shape[2]+offset_height, offset_width:image.shape[3]+offset_width] = image
 
@@ -322,7 +323,6 @@ class ShiftedPatchTokenization(nn.Module):
         )
 
         flat_patches = torch.flatten(patches, start_dim = 1)
-        print(flat_patches.shape)
         if not self.vanilla:
             # Layer normalize the flat patches and linearly project it
             tokens = self.layer_norm(flat_patches)
@@ -344,7 +344,7 @@ class PatchEncoder(nn.Module):
         self.positions = torch.arange(start=0, end=self.num_patches, step=1)
 
     def forward(self, encoded_patches):
-        encoded_positions = self.position_embedding(self.positions)
+        encoded_positions = self.position_embedding(self.positions, device = device)
         encoded_patches = encoded_patches + encoded_positions
         _,_, H, W = encoded_patches.shape
         return encoded_patches, H, W
