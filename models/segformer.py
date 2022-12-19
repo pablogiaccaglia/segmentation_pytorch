@@ -418,7 +418,7 @@ class Segformer(nn.Module):
 
             self.patch_embed2 = ShiftedPatchTokenization(
                     img_size = img_size // 4,
-                    patch_size = 3,
+                    patch_size = 3,#
                     in_chans = embed_dims[0],
                     embed_dim = embed_dims[1]
             )
