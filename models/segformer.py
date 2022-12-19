@@ -213,7 +213,7 @@ def pad_to_bounding_box(
         target_width,
 ):
     im = torch.ones((image.shape[0], image.shape[1], target_height, target_width))
-    if device == 'cuda':
+    if str(device) == 'cuda':
         im = im.cuda()
     im = im * image.min()
     im[:, :, offset_height:image.shape[2]+offset_height, offset_width:image.shape[3]+offset_width] = image
