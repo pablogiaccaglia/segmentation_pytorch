@@ -840,10 +840,12 @@ class Segformer(nn.Module):
 
         x = self.patch_embed1(x)
         x = self.patch_encoder1(x)
+        print(x.shape)
         for i, blk in enumerate(self.block1):
             x = blk(x)
         x = self.norm1(x)
-        x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+        print(x.shape)
+        # x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
         outs.append(x)
 
         # stage 2
