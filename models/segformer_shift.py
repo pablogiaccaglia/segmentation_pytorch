@@ -12,7 +12,7 @@ from timm.models.vision_transformer import _cfg
 from torch.nn.functional import _in_projection
 from torch.nn.functional import _in_projection_packed
 from torch.nn.functional import _mha_shape_check
-from torch.nn.functional import _pad
+from torch.nn.functional import pad
 from torch.overrides import handle_torch_function
 from torch.overrides import has_torch_function
 
@@ -25,11 +25,6 @@ import torch
 from torch import Tensor
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# We define this function as _pad because it takes an argument
-# named pad, which clobbers the recursive reference to the pad
-# function needed for __torch_function__ support
-pad = _pad
 
 
 def scaled_dot_product_attention(
