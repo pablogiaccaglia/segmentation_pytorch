@@ -350,7 +350,7 @@ class Block(nn.Module):
         self.norm1 = norm_layer(dim)
         self.attn = MultiHeadAttentionLSA(
                 embed_dim = dim,
-                num_heads = num_heads, bias = qkv_bias, droput = drop)
+                num_heads = num_heads, bias = qkv_bias, dropout = drop)
 
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
