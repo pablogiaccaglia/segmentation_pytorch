@@ -19,6 +19,15 @@ model = Segformer(pretrained = "/Users/pablo/Desktop/segmentation_pytorch/mit_b0
                   decoder_dim = SEG_CFG.DECODER_DIM, norm_layer = partial(nn.LayerNorm, eps = 1e-6),
                   shift_patch_tokenization = True)
 
+"""torch.Size([1, 1, 16384, 16384])
+torch.Size([1, 1, 16384, 16384])
+torch.Size([1, 2, 4096, 4096])
+torch.Size([1, 2, 4096, 4096])
+torch.Size([1, 5, 1024, 1024])
+torch.Size([1, 5, 1024, 1024])
+torch.Size([1, 8, 256, 256])
+torch.Size([1, 8, 256, 256])
+"""
 
 x2 = torch.ones((2, 3, 512, 512))
 details = get_model_summary(model, x2, verbose=True)

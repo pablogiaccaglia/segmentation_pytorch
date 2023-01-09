@@ -91,9 +91,11 @@ class Attention(nn.Module):
 
     def forward(self, x, H, W):
         B, N, C = x.shape
+
         q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
 
-        if self.sr_ratio > 1:
+
+        if self.sr_ratio  > 1:
             x_ = x.permute(0, 2, 1).reshape(B, C, H, W)
             x_ = self.sr(x_).reshape(B, C, -1).permute(0, 2, 1)
             x_ = self.norm(x_)
@@ -101,8 +103,9 @@ class Attention(nn.Module):
         else:
             kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
-
         attn = (q @ k.transpose(-2, -1)) * self.scale
+        print(attn.shape)
+        print()
         attn = attn.softmax(dim = -1)
         attn = self.attn_drop(attn)
 
@@ -492,36 +495,29 @@ class Segformer(nn.Module):
         cur = 0
         self.block1 = nn.ModuleList([Block(
                 dim = embed_dims[0], num_heads = num_heads[0], mlp_ratio = mlp_ratios[0], qkv_bias = qkv_bias,
-                qk_scale = qk_scale,
-                drop = drop_rate, attn_drop = attn_drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer,
-                sr_ratio = sr_ratios[0])
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
             for i in range(depths[0])])
         self.norm1 = norm_layer(embed_dims[0])
 
         cur += depths[0]
         self.block2 = nn.ModuleList([Block(
                 dim = embed_dims[1], num_heads = num_heads[1], mlp_ratio = mlp_ratios[1], qkv_bias = qkv_bias,
-                qk_scale = qk_scale,
-                drop = drop_rate, attn_drop = attn_drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer,
-                sr_ratio = sr_ratios[1])
+
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
             for i in range(depths[1])])
         self.norm2 = norm_layer(embed_dims[1])
 
         cur += depths[1]
         self.block3 = nn.ModuleList([Block(
                 dim = embed_dims[2], num_heads = num_heads[2], mlp_ratio = mlp_ratios[2], qkv_bias = qkv_bias,
-                qk_scale = qk_scale,
-                drop = drop_rate, attn_drop = attn_drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer,
-                sr_ratio = sr_ratios[2])
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
             for i in range(depths[2])])
         self.norm3 = norm_layer(embed_dims[2])
 
         cur += depths[2]
         self.block4 = nn.ModuleList([Block(
                 dim = embed_dims[3], num_heads = num_heads[3], mlp_ratio = mlp_ratios[3], qkv_bias = qkv_bias,
-                qk_scale = qk_scale,
-                drop = drop_rate, attn_drop = attn_drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer,
-                sr_ratio = sr_ratios[3])
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
             for i in range(depths[3])])
         self.norm4 = norm_layer(embed_dims[3])
 

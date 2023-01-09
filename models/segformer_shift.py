@@ -328,9 +328,10 @@ class Attention(nn.Module):
 
     def forward(self, x, H, W):
         B, N, C = x.shape
+
         q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
 
-        if self.sr_ratio > 1:
+        if self.sr_ratio  > 1:
             x_ = x.permute(0, 2, 1).reshape(B, C, H, W)
             x_ = self.sr(x_).reshape(B, C, -1).permute(0, 2, 1)
             x_ = self.norm(x_)
@@ -338,8 +339,8 @@ class Attention(nn.Module):
         else:
             kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
-
         attn = (q @ k.transpose(-2, -1)) * self.scale
+
         attn = attn.softmax(dim = -1)
         attn = self.attn_drop(attn)
 
@@ -760,7 +761,6 @@ class Segformer(nn.Module):
             padding = int(patch_size // 2)
             stride = 2
             num_patches = math.floor((((img_size // 4) + 2*padding - 1*(patch_size-1)-1)/stride)+1)**2
-            print(num_patches)
 
             self.patch_encoder2 = PatchEncoder(
                     num_patches =num_patches,
