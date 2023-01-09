@@ -3,7 +3,7 @@ from functools import partial
 import torch
 from torch import nn
 
-from segformer import Segformer
+from segformer_shift import Segformer
 
 from configs.segformer_config import config as cfg
 from utils.modelsummary import get_model_summary
@@ -17,7 +17,7 @@ model = Segformer(pretrained = "/Users/pablo/Desktop/segmentation_pytorch/mit_b0
                   mlp_ratios = SEG_CFG.MLP_RATIOS, qkv_bias = SEG_CFG.QKV_BIAS, depths = SEG_CFG.DEPTHS,
                   sr_ratios = SEG_CFG.SR_RATIOS, drop_rate = SEG_CFG.DROP_RATE, drop_path_rate = SEG_CFG.DROP_PATH_RATE,
                   decoder_dim = SEG_CFG.DECODER_DIM, norm_layer = partial(nn.LayerNorm, eps = 1e-6),
-                  shift_patch_tokenization = False)
+                  shift_patch_tokenization = True)
 
 
 x2 = torch.ones((2, 3, 512, 512))
