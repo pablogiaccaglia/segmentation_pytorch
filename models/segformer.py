@@ -149,7 +149,6 @@ class Block(nn.Module):
     def forward(self, x, H, W):
         x = x + self.drop_path(self.attn(self.norm1(x), H, W))
         x = x + self.drop_path(self.mlp(self.norm2(x), H, W))
-
         return x
 
 
@@ -188,9 +187,11 @@ class OverlapPatchEmbed(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
-        x = self.proj(x)
+        # x: B, C, H, W
+        x = self.proj(x) #x: B, embed_dim, H/2^{i+1} , W/2^{i+1}
         _, _, H, W = x.shape
-        x = x.flatten(2).transpose(1, 2)
+        # Since nn.LayerNorm in PyTorch works for tensors of shape batch, ...., channels
+        x = x.flatten(2).transpose(1, 2) #last 2 dims are flattened, then embed dims becomes last dimension, in this way layernorm can be applied to that dimension
         x = self.norm(x)
 
         return x, H, W
@@ -241,11 +242,12 @@ class ShiftedPatchTokenization(nn.Module):
         self.patch_size = patch_size
         self.half_patch = patch_size // 2
         self.num_patches = (img_size // patch_size) ** 2
-        self.flattened_dim = 5*patch_size * patch_size * in_chans * self.num_patches
+        self.flattened_dim = 5*patch_size * patch_size * in_chans
         self.projection = torch.nn.Linear(self.flattened_dim, embed_dim)
         self.layer_norm = torch.nn.LayerNorm(self.flattened_dim, eps = layer_norm_eps)
 
         self.apply(self._init_weights)
+
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -322,7 +324,8 @@ class ShiftedPatchTokenization(nn.Module):
             self.patch_size
         )
 
-        flat_patches = torch.flatten(patches, start_dim = 1)
+        flat_patches = torch.flatten(patches, start_dim = 2)
+
         if not self.vanilla:
             # Layer normalize the flat patches and linearly project it
             tokens = self.layer_norm(flat_patches)
@@ -590,6 +593,7 @@ class Segformer(nn.Module):
         self.head = nn.Linear(self.embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
     def forward_features(self, x):
+        # x: B, C, H, W
         B = x.shape[0]
         outs = []
 
@@ -599,11 +603,13 @@ class Segformer(nn.Module):
             x = self.patch_embed1(x)
             x = self.patch_encoder1(x)
         else:
-            x, H, W = self.patch_embed1(x)
+            x, H, W = self.patch_embed1(x)#torch.Size([2, 16384, 32])
+
         for i, blk in enumerate(self.block1):
             x = blk(x, H, W)
         x = self.norm1(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+
         outs.append(x)
 
         # stage 2

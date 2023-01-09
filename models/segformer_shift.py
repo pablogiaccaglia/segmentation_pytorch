@@ -28,27 +28,25 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def scaled_dot_product_attention(
-    q: Tensor,
-    k: Tensor,
-    v: Tensor,
-    temperature: Tensor,
-    attn_mask: Optional[Tensor] = None,
-    dropout_p: float = 0.0,
+        q: Tensor,
+        k: Tensor,
+        v: Tensor,
+        temperature: Tensor,
+        attn_mask: Optional[Tensor] = None,
+        dropout_p: float = 0.0,
 ) -> Tuple[Tensor, Tensor]:
-
     B, Nt, E = q.shape
     q = q / temperature
     # (B, Nt, E) x (B, E, Ns) -> (B, Nt, Ns)
     attn = torch.bmm(q, k.transpose(-2, -1))
     if attn_mask is not None:
         attn += attn_mask
-    attn = F.softmax(attn, dim=-1)
+    attn = F.softmax(attn, dim = -1)
     if dropout_p > 0.0:
         attn = F.dropout(attn, p = dropout_p)
     # (B, Nt, Ns) x (B, Ns, E) -> (B, Nt, E)
     output = torch.bmm(attn, v)
     return output, attn
-
 
 
 def multi_head_attention_forward(
@@ -98,7 +96,7 @@ def multi_head_attention_forward(
         f"was expecting embedding dimension of {embed_dim_to_check}, but got {embed_dim}"
     if isinstance(embed_dim, torch.Tensor):
         # embed_dim can be a tensor when JIT tracing
-        head_dim = embed_dim.div(num_heads, rounding_mode='trunc')
+        head_dim = embed_dim.div(num_heads, rounding_mode = 'trunc')
     else:
         head_dim = embed_dim // num_heads
     assert head_dim * num_heads == embed_dim, f"embed_dim {embed_dim} not divisible by num_heads {num_heads}"
@@ -136,18 +134,21 @@ def multi_head_attention_forward(
         if attn_mask.dim() == 2:
             correct_2d_size = (tgt_len, src_len)
             if attn_mask.shape != correct_2d_size:
-                raise RuntimeError(f"The shape of the 2D attn_mask is {attn_mask.shape}, but should be {correct_2d_size}.")
+                raise RuntimeError(
+                    f"The shape of the 2D attn_mask is {attn_mask.shape}, but should be {correct_2d_size}.")
             attn_mask = attn_mask.unsqueeze(0)
         elif attn_mask.dim() == 3:
             correct_3d_size = (bsz * num_heads, tgt_len, src_len)
             if attn_mask.shape != correct_3d_size:
-                raise RuntimeError(f"The shape of the 3D attn_mask is {attn_mask.shape}, but should be {correct_3d_size}.")
+                raise RuntimeError(
+                    f"The shape of the 3D attn_mask is {attn_mask.shape}, but should be {correct_3d_size}.")
         else:
             raise RuntimeError(f"attn_mask's dimension {attn_mask.dim()} is not supported")
 
     # prep key padding mask
     if key_padding_mask is not None and key_padding_mask.dtype == torch.uint8:
-        warnings.warn("Byte tensor for key_padding_mask in nn.MultiheadAttention is deprecated. Use bool tensor instead.")
+        warnings.warn(
+            "Byte tensor for key_padding_mask in nn.MultiheadAttention is deprecated. Use bool tensor instead.")
         key_padding_mask = key_padding_mask.to(torch.bool)
 
     # add bias along batch dimension (currently second)
@@ -190,8 +191,8 @@ def multi_head_attention_forward(
     # add zero attention along batch dimension (now first)
     if add_zero_attn:
         zero_attn_shape = (bsz * num_heads, 1, head_dim)
-        k = torch.cat([k, torch.zeros(zero_attn_shape, dtype=k.dtype, device=k.device)], dim=1)
-        v = torch.cat([v, torch.zeros(zero_attn_shape, dtype=v.dtype, device=v.device)], dim=1)
+        k = torch.cat([k, torch.zeros(zero_attn_shape, dtype = k.dtype, device = k.device)], dim = 1)
+        v = torch.cat([v, torch.zeros(zero_attn_shape, dtype = v.dtype, device = v.device)], dim = 1)
         if attn_mask is not None:
             attn_mask = pad(attn_mask, (0, 1))
         if key_padding_mask is not None:
@@ -204,7 +205,7 @@ def multi_head_attention_forward(
     if key_padding_mask is not None:
         assert key_padding_mask.shape == (bsz, src_len), \
             f"expecting key_padding_mask shape of {(bsz, src_len)}, but got {key_padding_mask.shape}"
-        key_padding_mask = key_padding_mask.view(bsz, 1, 1, src_len).   \
+        key_padding_mask = key_padding_mask.view(bsz, 1, 1, src_len). \
             expand(-1, num_heads, -1, -1).reshape(bsz * num_heads, 1, src_len)
         if attn_mask is None:
             attn_mask = key_padding_mask
@@ -215,7 +216,7 @@ def multi_head_attention_forward(
 
     # convert mask to float
     if attn_mask is not None and attn_mask.dtype == torch.bool:
-        new_attn_mask = torch.zeros_like(attn_mask, dtype=q.dtype)
+        new_attn_mask = torch.zeros_like(attn_mask, dtype = q.dtype)
         new_attn_mask.masked_fill_(attn_mask, float("-inf"))
         attn_mask = new_attn_mask
 
@@ -234,7 +235,7 @@ def multi_head_attention_forward(
         # optionally average attention weights over heads
         attn_output_weights = attn_output_weights.view(bsz, num_heads, tgt_len, src_len)
         if average_attn_weights:
-            attn_output_weights = attn_output_weights.sum(dim=1) / num_heads
+            attn_output_weights = attn_output_weights.sum(dim = 1) / num_heads
 
         if not is_batched:
             # squeeze the output if input was unbatched
@@ -246,7 +247,6 @@ def multi_head_attention_forward(
             # squeeze the output if input was unbatched
             attn_output = attn_output.squeeze(1)
         return attn_output, None
-
 
 
 class Mlp(nn.Module):
@@ -318,24 +318,24 @@ class MultiHeadAttentionLSA(torch.nn.MultiheadAttention):
 
         if not self._qkv_same_embed_dim:
             attn_output, attn_output_weights = multi_head_attention_forward(
-                query, key, value, self.temperature, self.embed_dim, self.num_heads,
-                self.in_proj_weight, self.in_proj_bias,
-                self.bias_k, self.bias_v, self.add_zero_attn,
-                self.dropout, self.out_proj.weight, self.out_proj.bias,
-                training=self.training,
-                key_padding_mask=key_padding_mask, need_weights=need_weights,
-                attn_mask=attn_mask, use_separate_proj_weight=True,
-                q_proj_weight=self.q_proj_weight, k_proj_weight=self.k_proj_weight,
-                v_proj_weight=self.v_proj_weight, average_attn_weights=average_attn_weights)
+                    query, key, value, self.temperature, self.embed_dim, self.num_heads,
+                    self.in_proj_weight, self.in_proj_bias,
+                    self.bias_k, self.bias_v, self.add_zero_attn,
+                    self.dropout, self.out_proj.weight, self.out_proj.bias,
+                    training = self.training,
+                    key_padding_mask = key_padding_mask, need_weights = need_weights,
+                    attn_mask = attn_mask, use_separate_proj_weight = True,
+                    q_proj_weight = self.q_proj_weight, k_proj_weight = self.k_proj_weight,
+                    v_proj_weight = self.v_proj_weight, average_attn_weights = average_attn_weights)
         else:
             attn_output, attn_output_weights = multi_head_attention_forward(
-                query, key, value, self.temperature, self.embed_dim, self.num_heads,
-                self.in_proj_weight, self.in_proj_bias,
-                self.bias_k, self.bias_v, self.add_zero_attn,
-                self.dropout, self.out_proj.weight, self.out_proj.bias,
-                training=self.training,
-                key_padding_mask=key_padding_mask, need_weights=need_weights,
-                attn_mask=attn_mask, average_attn_weights=average_attn_weights)
+                    query, key, value, self.temperature, self.embed_dim, self.num_heads,
+                    self.in_proj_weight, self.in_proj_bias,
+                    self.bias_k, self.bias_v, self.add_zero_attn,
+                    self.dropout, self.out_proj.weight, self.out_proj.bias,
+                    training = self.training,
+                    key_padding_mask = key_padding_mask, need_weights = need_weights,
+                    attn_mask = attn_mask, average_attn_weights = average_attn_weights)
         if self.batch_first and is_batched:
             return attn_output.transpose(1, 0), attn_output_weights
         else:
@@ -380,7 +380,6 @@ class Block(nn.Module):
         att_output, _ = self.attn(x1, x1, x1)
         x = x + self.drop_path(att_output)
         x = x + self.drop_path(self.mlp(self.norm2(x), H, W))
-
         return x
 
 
@@ -424,6 +423,8 @@ class OverlapPatchEmbed(nn.Module):
         x = x.flatten(2).transpose(1, 2)
         x = self.norm(x)
 
+
+
         return x, H, W
 
 
@@ -461,6 +462,7 @@ class ShiftedPatchTokenization(nn.Module):
             self,
             img_size,
             patch_size,
+            stride,
             in_chans,
             embed_dim,
             layer_norm_eps = 1e-6,
@@ -473,9 +475,10 @@ class ShiftedPatchTokenization(nn.Module):
         self.patch_size = patch_size
         self.half_patch = patch_size // 2
         self.num_patches = (img_size // patch_size) ** 2
-        self.flattened_dim = 5 * patch_size * patch_size * in_chans * self.num_patches
+        self.flattened_dim = 5 * patch_size * patch_size * in_chans
         self.projection = torch.nn.Linear(self.flattened_dim, embed_dim)
         self.layer_norm = torch.nn.LayerNorm(self.flattened_dim, eps = layer_norm_eps)
+        self.stride = stride
 
         self.apply(self._init_weights)
 
@@ -547,14 +550,25 @@ class ShiftedPatchTokenization(nn.Module):
                     ],
                     axis = 1,
             )
+
+
+        # 512*
+        #
         # Patchify the images and flatten it
         patches = extract_tensor_patches(
                 images,
                 self.patch_size,
-                self.patch_size
+                self.stride,
+                padding = self.patch_size // 2
         )
 
-        flat_patches = torch.flatten(patches, start_dim = 1)
+        #5329*32
+
+        # 170k
+
+        #
+
+        flat_patches = torch.flatten(patches, start_dim = 2)
         if not self.vanilla:
             # Layer normalize the flat patches and linearly project it
             tokens = self.layer_norm(flat_patches)
@@ -613,6 +627,7 @@ class LinearMLP(nn.Module):
         x = self.proj(x)
         return x
 
+#682000
 
 class DWConv(nn.Module):
     def __init__(self, dim = 768):
@@ -660,46 +675,71 @@ class Segformer(nn.Module):
             self.patch_embed1 = ShiftedPatchTokenization(
                     img_size = img_size,
                     in_chans = in_chans,
+                    stride = 4,
                     patch_size = 7,
                     embed_dim = embed_dims[0]
             )
+            patch_size = 7
+            padding = int(patch_size // 2)
+            stride = 4
+            num_patches = math.floor(((img_size + 2*padding - 1*(patch_size-1)-1)/stride)+1)**2
+
             self.patch_encoder1 = PatchEncoder(
-                    num_patches = (img_size // 7) ** 2,
+                    num_patches = num_patches,
                     embed_dim = embed_dims[0]
             )
 
             self.patch_embed2 = ShiftedPatchTokenization(
                     img_size = img_size // 4,
                     patch_size = 3,  #
+                    stride = 2,
                     in_chans = embed_dims[0],
                     embed_dim = embed_dims[1]
             )
 
+            patch_size = 3
+            padding = int(patch_size // 2)
+            stride = 2
+            num_patches = math.floor((((img_size // 4) + 2*padding - 1*(patch_size-1)-1)/stride)+1)**2
+            print(num_patches)
+
             self.patch_encoder2 = PatchEncoder(
-                    num_patches = ((img_size // 4) // 3) ** 2,
+                    num_patches =num_patches,
                     embed_dim = embed_dims[1]
             )
 
             self.patch_embed3 = ShiftedPatchTokenization(
                     img_size = img_size // 8,
                     patch_size = 3,
+                    stride = 2,
                     in_chans = embed_dims[1],
                     embed_dim = embed_dims[2]
             )
 
+            patch_size = 3
+            padding = int(patch_size // 2)
+            stride = 2
+            num_patches = math.floor((((img_size // 8) + 2*padding - 1*(patch_size-1)-1)/stride)+1)**2
+
             self.patch_encoder3 = PatchEncoder(
-                    num_patches = ((img_size // 8) // 3) ** 2,
+                    num_patches = num_patches,
                     embed_dim = embed_dims[2]
             )
             self.patch_embed4 = ShiftedPatchTokenization(
                     img_size = img_size // 16,
                     patch_size = 3,
+                    stride = 2,
                     in_chans = embed_dims[2],
                     embed_dim = embed_dims[3]
             )
 
+            patch_size = 3
+            padding = int(patch_size // 2)
+            stride = 2
+            num_patches = math.floor((((img_size // 16) + 2*padding - 1*(patch_size-1)-1)/stride)+1)**2
+
             self.patch_encoder4 = PatchEncoder(
-                    num_patches = ((img_size // 16) // 3) ** 2,
+                    num_patches = num_patches,
                     embed_dim = embed_dims[3]
             )
 
@@ -838,42 +878,51 @@ class Segformer(nn.Module):
 
         # stage 1
 
+        # x: B, C, H, W
+
+        B, C, H, W = x.shape
         x = self.patch_embed1(x)
         x = self.patch_encoder1(x)
-        print(x.shape)
+
+        H, W = int(H / (2 ** 2)), int(W / (2 ** 2))
+        # H/2^{i+1} , W/2^{i+1}
+
         for i, blk in enumerate(self.block1):
-            x = blk(x)
+            x = blk(x, H, W)
         x = self.norm1(x)
-        print(x.shape)
-        # x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+        x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
         outs.append(x)
 
         # stage 2
+        B, C, H, W = x.shape
         x = self.patch_embed2(x)
         x = self.patch_encoder2(x)
-
+        H, W = int(H / 2), int(W / 2)
         for i, blk in enumerate(self.block2):
-            x = blk(x)
+            x = blk(x, H, W)
         x = self.norm2(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
         outs.append(x)
 
         # stage 3
+        B, C, H, W = x.shape
         x = self.patch_embed3(x)
-        x, H, W = self.patch_encoder3(x)
-
+        x = self.patch_encoder3(x)
+        H, W = int(H /2), int(W / 2)
         for i, blk in enumerate(self.block3):
-            x = blk(x)
+            x = blk(x,H,W)
         x = self.norm3(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
         outs.append(x)
 
         # stage 4
+        B, C, H, W = x.shape
         x = self.patch_embed4(x)
-        x, H, W = self.patch_encoder4(x)
+        x = self.patch_encoder4(x)
+        H, W = int(H / 2), int(W / 2)
 
         for i, blk in enumerate(self.block4):
-            x = blk(x)
+            x = blk(x,H,W)
         x = self.norm4(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
         outs.append(x)
