@@ -444,7 +444,7 @@ class Block(nn.Module):
         return x
 
 
-class OverlapPatchEmbed(nn.Module):
+class OverlapPatchEmbedSPT(nn.Module):
     """ Image to Patch Embedding
     """
 
@@ -457,7 +457,11 @@ class OverlapPatchEmbed(nn.Module):
         self.patch_size = patch_size
         self.H, self.W = img_size[0] // patch_size[0], img_size[1] // patch_size[1]
         self.num_patches = self.H * self.W
-        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size = patch_size, stride = stride,
+
+
+        self.SC = ShiftedConcatenator(image_size = img_size[0], patch_size = patch_size[0])
+
+        self.proj = nn.Conv2d(in_chans*5, embed_dim, kernel_size = patch_size, stride = stride,
                               padding = (patch_size[0] // 2, patch_size[1] // 2))
         self.norm = nn.LayerNorm(embed_dim)
 
@@ -479,6 +483,8 @@ class OverlapPatchEmbed(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
+
+        x = self.SC(x)
         x = self.proj(x)
         _, _, H, W = x.shape
         x = x.flatten(2).transpose(1, 2)
@@ -514,7 +520,75 @@ def pad_to_bounding_box(
 
     return im
 
+class ShiftedConcatenator(nn.Module):
+    """ Image to Patch concat
+    """
 
+    def __init__(
+            self,
+            image_size,
+            patch_size,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.half_patch = patch_size // 2
+        self.image_size = image_size
+
+    def crop_shift_pad(self, images, mode):
+        # Build the diagonally shifted images
+        if mode == "left-up":
+            crop_height = self.half_patch
+            crop_width = self.half_patch
+            shift_height = 0
+            shift_width = 0
+        elif mode == "left-down":
+            crop_height = 0
+            crop_width = self.half_patch
+            shift_height = self.half_patch
+            shift_width = 0
+        elif mode == "right-up":
+            crop_height = self.half_patch
+            crop_width = 0
+            shift_height = 0
+            shift_width = self.half_patch
+        else:
+            crop_height = 0
+            crop_width = 0
+            shift_height = self.half_patch
+            shift_width = self.half_patch
+
+        # Crop the shifted images and pad them
+        crop = crop_to_bounding_box(
+                images,
+                offset_height = crop_height,
+                offset_width = crop_width,
+                target_height = self.image_size - self.half_patch,
+                target_width = self.image_size - self.half_patch,
+        )
+        shift_pad = pad_to_bounding_box(
+                crop,
+                offset_height = shift_height,
+                offset_width = shift_width,
+                target_height = self.image_size,
+                target_width = self.image_size,
+        )
+        return shift_pad
+
+    def forward(self, images):
+        # Concat the shifted images with the original image
+        images = torch.cat(
+                    [
+                        images,
+                        self.crop_shift_pad(images, mode = "left-up"),
+                        self.crop_shift_pad(images, mode = "left-down"),
+                        self.crop_shift_pad(images, mode = "right-up"),
+                        self.crop_shift_pad(images, mode = "right-down"),
+                    ],
+                    axis = 1,
+            )
+
+
+        return images
 class ShiftedPatchTokenization(nn.Module):
     """ Image to Patch Embedding
     """
@@ -738,7 +812,7 @@ class Segformer(nn.Module):
             # patch_embe
             if self.overlap_patch_embed:
                 # patch_embed
-                self.patch_embed1 = OverlapPatchEmbed(
+                self.patch_embed1 = OverlapPatchEmbedSPT(
                         img_size = img_size,
                         patch_size = 7,
                         stride = 4,
@@ -765,7 +839,7 @@ class Segformer(nn.Module):
 
 
             if self.overlap_patch_embed:
-                self.patch_embed2 = OverlapPatchEmbed(
+                self.patch_embed2 = OverlapPatchEmbedSPT(
                         img_size = img_size // 4,
                         patch_size = 3,
                         stride = 2,
@@ -792,7 +866,7 @@ class Segformer(nn.Module):
             )
 
             if self.overlap_patch_embed:
-                self.patch_embed3 = OverlapPatchEmbed(
+                self.patch_embed3 = OverlapPatchEmbedSPT(
                         img_size = img_size // 8,
                         patch_size = 3,
                         stride = 2,
@@ -833,7 +907,7 @@ class Segformer(nn.Module):
             num_patches = math.floor((((img_size // 16) + 2*padding - 1*(patch_size-1)-1)/stride)+1)**2
 
             if self.overlap_patch_embed:
-                self.patch_embed4 = OverlapPatchEmbed(
+                self.patch_embed4 = OverlapPatchEmbedSPT(
                         img_size = img_size // 16,
                         patch_size = 3,
                         stride = 2,
