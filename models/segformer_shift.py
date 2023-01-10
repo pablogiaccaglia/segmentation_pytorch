@@ -308,6 +308,7 @@ class Attention(nn.Module):
         if self.masked:
             self.mask = 1 - torch.eye(sim_mat_shape[-1])
             self.mask = self.mask.expand(sim_mat_shape)
+            self.mask[self.mask==0] = -float("inf")
 
         self.sr_ratio = sr_ratio
         if sr_ratio > 1:
@@ -317,8 +318,7 @@ class Attention(nn.Module):
         self.apply(self._init_weights)
 
     def masked_softmax(self, x, mask, **kwargs):
-        x[mask == 0] = -float("inf")
-        return torch.softmax(x, **kwargs)
+        return torch.softmax(x*mask, **kwargs)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
