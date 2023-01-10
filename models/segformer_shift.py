@@ -798,6 +798,7 @@ class DWConv(nn.Module):
 class Segformer(nn.Module):
     def __init__(
             self,
+            batch_size = 8,
             pretrained = None,
             img_size = 1024,
             patch_size = 4,
@@ -942,10 +943,10 @@ class Segformer(nn.Module):
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
         cur = 0
 
-        sim_mat0_shape = (1, num_heads[0], num_patches0, num_patches0)
-        sim_mat1_shape = (1,num_heads[1], num_patches1, num_patches1)
-        sim_mat2_shape = (1, num_heads[2], num_patches2, num_patches2)
-        sim_mat3_shape = (1,num_heads[3], num_patches3, num_patches3)
+        sim_mat0_shape = (batch_size, num_heads[0], num_patches0, num_patches0)
+        sim_mat1_shape = (batch_size,num_heads[1], num_patches1, num_patches1)
+        sim_mat2_shape = (batch_size, num_heads[2], num_patches2, num_patches2)
+        sim_mat3_shape = (batch_size,num_heads[3], num_patches3, num_patches3)
 
         self.block1 = nn.ModuleList([Block(
                 dim = embed_dims[0], num_heads = num_heads[0], mlp_ratio = mlp_ratios[0], qkv_bias = qkv_bias,
