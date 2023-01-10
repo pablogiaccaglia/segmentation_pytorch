@@ -817,7 +817,7 @@ class Segformer(nn.Module):
             decoder_dim = 256,
             positional_encoding = False,
             overlap_patch_embed = False,
-            masked_attention
+            masked_attention = False
     ):
         super().__init__()
         self.num_classes = num_classes
