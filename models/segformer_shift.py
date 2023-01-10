@@ -317,10 +317,8 @@ class Attention(nn.Module):
         self.apply(self._init_weights)
 
     def masked_softmax(self, x, mask, **kwargs):
-        x_masked = x.clone()
-        x_masked[mask == 0] = -float("inf")
-
-        return torch.softmax(x_masked, **kwargs)
+        x[mask == 0] = -float("inf")
+        return torch.softmax(x, **kwargs)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
