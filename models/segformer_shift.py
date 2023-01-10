@@ -288,7 +288,7 @@ class Mlp(nn.Module):
 
 class Attention(nn.Module):
     def __init__(self, dim, num_heads = 8, qkv_bias = False, qk_scale = None, attn_drop = 0., proj_drop = 0.,
-                 sr_ratio = 1):
+                 sr_ratio = 1, masked=False):
         super().__init__()
         assert dim % num_heads == 0, f"dim {dim} should be divided by num_heads {num_heads}."
 
@@ -303,6 +303,7 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
+        self.masked = masked
 
         self.sr_ratio = sr_ratio
         if sr_ratio > 1:
@@ -310,6 +311,12 @@ class Attention(nn.Module):
             self.norm = nn.LayerNorm(dim)
 
         self.apply(self._init_weights)
+
+    def masked_softmax(self, x, mask, **kwargs):
+        x_masked = x.clone()
+        x_masked[mask == 0] = -float("inf")
+
+        return torch.softmax(x_masked, **kwargs)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -331,6 +338,7 @@ class Attention(nn.Module):
 
         q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
 
+
         if self.sr_ratio  > 1:
             x_ = x.permute(0, 2, 1).reshape(B, C, H, W)
             x_ = self.sr(x_).reshape(B, C, -1).permute(0, 2, 1)
@@ -340,9 +348,18 @@ class Attention(nn.Module):
             kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
 
+
         attn = (q @ k.transpose(-2, -1)) * self.scale
 
-        attn = attn.softmax(dim = -1)
+
+
+        if self.masked:
+            mask = 1 - torch.eye(attn.shape[2])
+            mask = mask.expand(attn.shape)
+            attn = self.masked_softmax(x = attn, mask = mask, dim = -1)
+        else:
+            attn = attn.softmax(dim = -1)
+
         attn = self.attn_drop(attn)
 
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
@@ -408,13 +425,13 @@ class MultiHeadAttentionLSA(torch.nn.MultiheadAttention):
 class Block(nn.Module):
 
     def __init__(self, dim, num_heads, mlp_ratio = 4., qkv_bias = False, qk_scale = None, drop = 0., attn_drop = 0.,
-                 drop_path = 0., act_layer = nn.GELU, norm_layer = nn.LayerNorm, sr_ratio = 1):
+                 drop_path = 0., act_layer = nn.GELU, norm_layer = nn.LayerNorm, sr_ratio = 1, masked_attention=False):
         super().__init__()
         self.norm1 = norm_layer(dim)
         self.attn = Attention(
                 dim,
                 num_heads = num_heads, qkv_bias = qkv_bias, qk_scale = qk_scale,
-                attn_drop = attn_drop, proj_drop = drop, sr_ratio = sr_ratio)
+                attn_drop = attn_drop, proj_drop = drop, sr_ratio = sr_ratio, masked = masked_attention)
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
@@ -799,7 +816,8 @@ class Segformer(nn.Module):
             sr_ratios = [8, 4, 2, 1],
             decoder_dim = 256,
             positional_encoding = False,
-            overlap_patch_embed = False
+            overlap_patch_embed = False,
+            masked_attention
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -920,14 +938,12 @@ class Segformer(nn.Module):
                         embed_dim = embed_dims[3]
                 )
 
-
-
         # transformer encoder
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
         cur = 0
         self.block1 = nn.ModuleList([Block(
                 dim = embed_dims[0], num_heads = num_heads[0], mlp_ratio = mlp_ratios[0], qkv_bias = qkv_bias,
-                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer, masked_attention = masked_attention)
             for i in range(depths[0])])
         self.norm1 = norm_layer(embed_dims[0])
 
@@ -935,21 +951,21 @@ class Segformer(nn.Module):
         self.block2 = nn.ModuleList([Block(
                 dim = embed_dims[1], num_heads = num_heads[1], mlp_ratio = mlp_ratios[1], qkv_bias = qkv_bias,
 
-                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer, masked_attention = masked_attention)
             for i in range(depths[1])])
         self.norm2 = norm_layer(embed_dims[1])
 
         cur += depths[1]
         self.block3 = nn.ModuleList([Block(
                 dim = embed_dims[2], num_heads = num_heads[2], mlp_ratio = mlp_ratios[2], qkv_bias = qkv_bias,
-                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer, masked_attention = masked_attention)
             for i in range(depths[2])])
         self.norm3 = norm_layer(embed_dims[2])
 
         cur += depths[2]
         self.block4 = nn.ModuleList([Block(
                 dim = embed_dims[3], num_heads = num_heads[3], mlp_ratio = mlp_ratios[3], qkv_bias = qkv_bias,
-                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer)
+                drop = drop_rate, drop_path = dpr[cur + i], norm_layer = norm_layer, masked_attention = masked_attention)
             for i in range(depths[3])])
         self.norm4 = norm_layer(embed_dims[3])
 
