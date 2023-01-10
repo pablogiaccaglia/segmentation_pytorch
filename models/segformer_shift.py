@@ -15,7 +15,7 @@ from torch.nn.functional import _mha_shape_check
 from torch.nn.functional import pad
 from torch.overrides import handle_torch_function
 from torch.overrides import has_torch_function
-
+from maskedtensor import masked_tensor
 from models.segformer_utils.logger import get_root_logger
 from mmcv.runner import load_checkpoint
 from kornia.contrib import extract_tensor_patches, combine_tensor_patches
@@ -308,7 +308,7 @@ class Attention(nn.Module):
         if self.masked:
             self.mask = 1 - torch.eye(sim_mat_shape[-1], device = device)
             self.mask = self.mask.expand(sim_mat_shape)
-            self.mask[self.mask==0] = -float("inf")
+            self.mask = self.mask > 0
 
 
         self.sr_ratio = sr_ratio
@@ -318,8 +318,15 @@ class Attention(nn.Module):
 
         self.apply(self._init_weights)
 
-    def masked_softmax(self, x, mask, **kwargs):
-        return torch.softmax(x*mask, **kwargs)
+    def masked_softmax(self,x, mask, dim = -1):
+        masked_vec = x * mask.float()
+        max_vec = torch.max(masked_vec, dim = dim, keepdim = True)[0]
+        exps = torch.exp(masked_vec - max_vec)
+        masked_exps = exps * mask.float()
+        masked_sums = masked_exps.sum(dim, keepdim = True)
+        zeros = (masked_sums == 0)
+        masked_sums += zeros.float()
+        return masked_exps / masked_sums
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
