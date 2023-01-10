@@ -15,7 +15,6 @@ from torch.nn.functional import _mha_shape_check
 from torch.nn.functional import pad
 from torch.overrides import handle_torch_function
 from torch.overrides import has_torch_function
-from maskedtensor import masked_tensor
 from models.segformer_utils.logger import get_root_logger
 from mmcv.runner import load_checkpoint
 from kornia.contrib import extract_tensor_patches, combine_tensor_patches
