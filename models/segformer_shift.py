@@ -329,7 +329,13 @@ class Attention(nn.Module):
     def forward(self, x, H, W):
         B, N, C = x.shape
 
+        print(x.shape)
+        print(x.dtype)
+
         q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+
+        print(q.shape)
+        print(q.dtype)
 
         if self.sr_ratio  > 1:
             x_ = x.permute(0, 2, 1).reshape(B, C, H, W)
@@ -339,7 +345,12 @@ class Attention(nn.Module):
         else:
             kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
+
+        print(k.shape)
+        print(v.shape)
+
         attn = (q @ k.transpose(-2, -1)) * self.scale
+        print(attn.shape)
 
         attn = attn.softmax(dim = -1)
         attn = self.attn_drop(attn)
@@ -723,14 +734,15 @@ class Segformer(nn.Module):
             depths = [3, 6, 40, 3],
             sr_ratios = [8, 4, 2, 1],
             decoder_dim = 256,
-            shift_patch_tokenization = False
+            positional_encoding = False
     ):
         super().__init__()
         self.num_classes = num_classes
         self.depths = depths
         self.shift_patch_tokenization = shift_patch_tokenization
+        self.positional_encoding = positional_encoding
 
-        if shift_patch_tokenization:
+        if True:
             # patch_embed
             self.patch_embed1 = ShiftedPatchTokenization(
                     img_size = img_size,
@@ -799,37 +811,6 @@ class Segformer(nn.Module):
 
             self.patch_encoder4 = PatchEncoder(
                     num_patches = num_patches,
-                    embed_dim = embed_dims[3]
-            )
-
-        else:
-            # patch_embed
-            self.patch_embed1 = OverlapPatchEmbed(
-                    img_size = img_size,
-                    patch_size = 7,
-                    stride = 4,
-                    in_chans = in_chans,
-                    embed_dim = embed_dims[0]
-            )
-            self.patch_embed2 = OverlapPatchEmbed(
-                    img_size = img_size // 4,
-                    patch_size = 3,
-                    stride = 2,
-                    in_chans = embed_dims[0],
-                    embed_dim = embed_dims[1]
-            )
-            self.patch_embed3 = OverlapPatchEmbed(
-                    img_size = img_size // 8,
-                    patch_size = 3,
-                    stride = 2,
-                    in_chans = embed_dims[1],
-                    embed_dim = embed_dims[2]
-            )
-            self.patch_embed4 = OverlapPatchEmbed(
-                    img_size = img_size // 16,
-                    patch_size = 3,
-                    stride = 2,
-                    in_chans = embed_dims[2],
                     embed_dim = embed_dims[3]
             )
 
@@ -941,7 +922,8 @@ class Segformer(nn.Module):
 
         B, C, H, W = x.shape
         x = self.patch_embed1(x)
-        x = self.patch_encoder1(x)
+        if self.positional_encoding:
+            x = self.patch_encoder1(x)
 
         H, W = int(H / (2 ** 2)), int(W / (2 ** 2))
         # H/2^{i+1} , W/2^{i+1}
@@ -955,7 +937,8 @@ class Segformer(nn.Module):
         # stage 2
         B, C, H, W = x.shape
         x = self.patch_embed2(x)
-        x = self.patch_encoder2(x)
+        if self.positional_encoding:
+            x = self.patch_encoder2(x)
         H, W = int(H / 2), int(W / 2)
         for i, blk in enumerate(self.block2):
             x = blk(x, H, W)
@@ -966,7 +949,8 @@ class Segformer(nn.Module):
         # stage 3
         B, C, H, W = x.shape
         x = self.patch_embed3(x)
-        x = self.patch_encoder3(x)
+        if self.positional_encoding:
+            x = self.patch_encoder3(x)
         H, W = int(H /2), int(W / 2)
         for i, blk in enumerate(self.block3):
             x = blk(x,H,W)
@@ -977,7 +961,8 @@ class Segformer(nn.Module):
         # stage 4
         B, C, H, W = x.shape
         x = self.patch_embed4(x)
-        x = self.patch_encoder4(x)
+        if self.positional_encoding:
+            x = self.patch_encoder4(x)
         H, W = int(H / 2), int(W / 2)
 
         for i, blk in enumerate(self.block4):
