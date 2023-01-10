@@ -306,9 +306,10 @@ class Attention(nn.Module):
         self.masked = masked
 
         if self.masked:
-            self.mask = 1 - torch.eye(sim_mat_shape[-1])
+            self.mask = 1 - torch.eye(sim_mat_shape[-1], device = device)
             self.mask = self.mask.expand(sim_mat_shape)
             self.mask[self.mask==0] = -float("inf")
+
 
         self.sr_ratio = sr_ratio
         if sr_ratio > 1:
