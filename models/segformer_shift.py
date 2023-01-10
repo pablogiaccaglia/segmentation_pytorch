@@ -739,7 +739,7 @@ class Segformer(nn.Module):
         super().__init__()
         self.num_classes = num_classes
         self.depths = depths
-        self.shift_patch_tokenization = shift_patch_tokenization
+        self.shift_patch_tokenization = True
         self.positional_encoding = positional_encoding
 
         if True:
