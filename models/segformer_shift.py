@@ -724,23 +724,35 @@ class Segformer(nn.Module):
             depths = [3, 6, 40, 3],
             sr_ratios = [8, 4, 2, 1],
             decoder_dim = 256,
-            positional_encoding = False
+            positional_encoding = False,
+            overlap_patch_embed = False
     ):
         super().__init__()
         self.num_classes = num_classes
         self.depths = depths
         self.shift_patch_tokenization = True
+        self.overlap_patch_embed = overlap_patch_embed
         self.positional_encoding = positional_encoding
 
         if True:
-            # patch_embed
-            self.patch_embed1 = ShiftedPatchTokenization(
-                    img_size = img_size,
-                    in_chans = in_chans,
-                    stride = 4,
-                    patch_size = 7,
-                    embed_dim = embed_dims[0]
-            )
+            # patch_embe
+            if self.overlap_patch_embed:
+                # patch_embed
+                self.patch_embed1 = OverlapPatchEmbed(
+                        img_size = img_size,
+                        patch_size = 7,
+                        stride = 4,
+                        in_chans = in_chans,
+                        embed_dim = embed_dims[0]
+                )
+            else:
+                self.patch_embed1 = ShiftedPatchTokenization(
+                        img_size = img_size,
+                        in_chans = in_chans,
+                        stride = 4,
+                        patch_size = 7,
+                        embed_dim = embed_dims[0]
+                )
             patch_size = 7
             padding = int(patch_size // 2)
             stride = 4
@@ -751,13 +763,23 @@ class Segformer(nn.Module):
                     embed_dim = embed_dims[0]
             )
 
-            self.patch_embed2 = ShiftedPatchTokenization(
-                    img_size = img_size // 4,
-                    patch_size = 3,  #
-                    stride = 2,
-                    in_chans = embed_dims[0],
-                    embed_dim = embed_dims[1]
-            )
+
+            if self.overlap_patch_embed:
+                self.patch_embed2 = OverlapPatchEmbed(
+                        img_size = img_size // 4,
+                        patch_size = 3,
+                        stride = 2,
+                        in_chans = embed_dims[0],
+                        embed_dim = embed_dims[1]
+                )
+            else:
+                self.patch_embed2 = ShiftedPatchTokenization(
+                        img_size = img_size // 4,
+                        patch_size = 3,  #
+                        stride = 2,
+                        in_chans = embed_dims[0],
+                        embed_dim = embed_dims[1]
+                )
 
             patch_size = 3
             padding = int(patch_size // 2)
@@ -769,13 +791,24 @@ class Segformer(nn.Module):
                     embed_dim = embed_dims[1]
             )
 
-            self.patch_embed3 = ShiftedPatchTokenization(
-                    img_size = img_size // 8,
-                    patch_size = 3,
-                    stride = 2,
-                    in_chans = embed_dims[1],
-                    embed_dim = embed_dims[2]
-            )
+            if self.overlap_patch_embed:
+                self.patch_embed3 = OverlapPatchEmbed(
+                        img_size = img_size // 8,
+                        patch_size = 3,
+                        stride = 2,
+                        in_chans = embed_dims[1],
+                        embed_dim = embed_dims[2]
+                )
+
+            else:
+
+                self.patch_embed3 = ShiftedPatchTokenization(
+                        img_size = img_size // 8,
+                        patch_size = 3,
+                        stride = 2,
+                        in_chans = embed_dims[1],
+                        embed_dim = embed_dims[2]
+                )
 
             patch_size = 3
             padding = int(patch_size // 2)
@@ -799,10 +832,21 @@ class Segformer(nn.Module):
             stride = 2
             num_patches = math.floor((((img_size // 16) + 2*padding - 1*(patch_size-1)-1)/stride)+1)**2
 
-            self.patch_encoder4 = PatchEncoder(
-                    num_patches = num_patches,
-                    embed_dim = embed_dims[3]
-            )
+            if self.overlap_patch_embed:
+                self.patch_embed4 = OverlapPatchEmbed(
+                        img_size = img_size // 16,
+                        patch_size = 3,
+                        stride = 2,
+                        in_chans = embed_dims[2],
+                        embed_dim = embed_dims[3]
+                )
+            else:
+                self.patch_encoder4 = PatchEncoder(
+                        num_patches = num_patches,
+                        embed_dim = embed_dims[3]
+                )
+
+
 
         # transformer encoder
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
@@ -911,11 +955,15 @@ class Segformer(nn.Module):
         # x: B, C, H, W
 
         B, C, H, W = x.shape
-        x = self.patch_embed1(x)
+        if self.overlap_patch_embed:
+            x, H, W = self.patch_embed1(x)
+        else:
+            x = self.patch_embed1(x)
+            H, W = int(H / (2 ** 2)), int(W / (2 ** 2))
         if self.positional_encoding:
             x = self.patch_encoder1(x)
 
-        H, W = int(H / (2 ** 2)), int(W / (2 ** 2))
+
         # H/2^{i+1} , W/2^{i+1}
 
         for i, blk in enumerate(self.block1):
@@ -926,10 +974,14 @@ class Segformer(nn.Module):
 
         # stage 2
         B, C, H, W = x.shape
-        x = self.patch_embed2(x)
+        if self.overlap_patch_embed:
+            x, H, W = self.patch_embed2(x)
+        else:
+            x = self.patch_embed2(x)
+            H, W = int(H / 2), int(W / 2)
         if self.positional_encoding:
             x = self.patch_encoder2(x)
-        H, W = int(H / 2), int(W / 2)
+
         for i, blk in enumerate(self.block2):
             x = blk(x, H, W)
         x = self.norm2(x)
@@ -938,10 +990,14 @@ class Segformer(nn.Module):
 
         # stage 3
         B, C, H, W = x.shape
-        x = self.patch_embed3(x)
+        if self.overlap_patch_embed:
+            x, H, W = self.patch_embed3(x)
+        else:
+            x = self.patch_embed3(x)
+            H, W = int(H / 2), int(W / 2)
         if self.positional_encoding:
             x = self.patch_encoder3(x)
-        H, W = int(H /2), int(W / 2)
+
         for i, blk in enumerate(self.block3):
             x = blk(x,H,W)
         x = self.norm3(x)
@@ -950,10 +1006,14 @@ class Segformer(nn.Module):
 
         # stage 4
         B, C, H, W = x.shape
-        x = self.patch_embed4(x)
+        if self.overlap_patch_embed:
+            x, H, W = self.patch_embed4(x)
+        else:
+            x = self.patch_embed4(x)
+            H, W = int(H / 2), int(W / 2)
+
         if self.positional_encoding:
             x = self.patch_encoder4(x)
-        H, W = int(H / 2), int(W / 2)
 
         for i, blk in enumerate(self.block4):
             x = blk(x,H,W)
