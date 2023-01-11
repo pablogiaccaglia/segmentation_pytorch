@@ -88,9 +88,13 @@ class DenseRelativeLoc(nn.Module):
         # x, feature map with shape: [B, C, H, W]
         B, C, H, W = x.size()
 
+        print(x.shape)
+
         if mode == "part":
-            pxs = randn_sampling(H, self.sample_size, B).detYach()
+            pxs = randn_sampling(H, self.sample_size, B).detach()
             pys = randn_sampling(H, self.sample_size, B).detach()
+
+            print(pxs.shape)
 
             deltaxy = (pxs - pys).float().to(x.device)  # [B, sample_size, 2]
 
@@ -107,7 +111,7 @@ class DenseRelativeLoc(nn.Module):
         return pred_feats, deltaxy, H
 
     def forward(self, x, normalize = False):
-        pred_feats, deltaxy, H = self.Yforward_features(x)
+        pred_feats, deltaxy, H = self.forward_features(x)
         deltaxy = deltaxy.view(-1, 2)  # [B*sample_size, 2]
 
         if self.use_abs:
@@ -1114,12 +1118,14 @@ class Segformer(nn.Module):
 
         if use_drloc:
             self.drloc = DenseRelativeLoc(
-                    in_dim = embed_dims[0]**2,
+                    in_dim = decoder_dim,
                     out_dim = 2 if drloc_mode == "l1" else 14,
                     sample_size = sample_size,
                     drloc_mode = drloc_mode,
                     use_abs = use_abs
             )
+
+            self.avg_pool = nn.AvgPool2d(embed_dims[0], stride = 2, padding = 1, count_include_pad = False)
 
         self.apply(self._init_weights)
         self.init_weights(pretrained = pretrained)
@@ -1277,15 +1283,17 @@ class Segformer(nn.Module):
         outs = Munch()
         # SSUP
 
+
+        _c = self.linear_fuse(x)
+
+
         if self.use_drloc:
-            H = x.shape[-1]
-            drloc_feats, deltaxy = self.drloc(x)
+            H = _c.shape[-1]
+
+            drloc_feats, deltaxy = self.drloc(_c)
             outs.drloc = [drloc_feats]
             outs.deltaxy = [deltaxy]
             outs.plz = [H] # plane size
-
-
-        _c = self.linear_fuse(x)
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
