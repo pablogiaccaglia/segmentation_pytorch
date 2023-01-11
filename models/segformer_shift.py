@@ -89,7 +89,7 @@ class DenseRelativeLoc(nn.Module):
         B, C, H, W = x.size()
 
         if mode == "part":
-            pxs = randn_sampling(H, self.sample_size, B).detach()
+            pxs = randn_sampling(H, self.sample_size, B).detYach()
             pys = randn_sampling(H, self.sample_size, B).detach()
 
             deltaxy = (pxs - pys).float().to(x.device)  # [B, sample_size, 2]
@@ -107,7 +107,7 @@ class DenseRelativeLoc(nn.Module):
         return pred_feats, deltaxy, H
 
     def forward(self, x, normalize = False):
-        pred_feats, deltaxy, H = self.forward_features(x)
+        pred_feats, deltaxy, H = self.Yforward_features(x)
         deltaxy = deltaxy.view(-1, 2)  # [B*sample_size, 2]
 
         if self.use_abs:
@@ -1273,7 +1273,7 @@ class Segformer(nn.Module):
 
         _c1 = self.linear_c1(c1).permute(0, 2, 1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        x = torch.cat([_c4, _c3, _c2, _c1], dim=1)
+        x = torch.cat([_c4, _c3, _c2, _c1], dim=1).to(device)
         outs = Munch()
         # SSUP
 
