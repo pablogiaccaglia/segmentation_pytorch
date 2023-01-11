@@ -88,13 +88,10 @@ class DenseRelativeLoc(nn.Module):
         # x, feature map with shape: [B, C, H, W]
         B, C, H, W = x.size()
 
-        print(x.shape)
 
         if mode == "part":
             pxs = randn_sampling(H, self.sample_size, B).detach()
             pys = randn_sampling(H, self.sample_size, B).detach()
-
-            print(pxs.shape)
 
             deltaxy = (pxs - pys).float().to(x.device)  # [B, sample_size, 2]
 
@@ -1283,17 +1280,19 @@ class Segformer(nn.Module):
         outs = Munch()
         # SSUP
 
+        if self.use_drloc:
+            H = _c4.shape[-1]
+
+            drloc_feats, deltaxy = self.drloc(_c4)
+            outs.drloc = [drloc_feats]
+            outs.deltaxy = [deltaxy]
+            outs.plz = [H] # plane size
+
 
         _c = self.linear_fuse(x)
 
 
-        if self.use_drloc:
-            H = _c.shape[-1]
 
-            drloc_feats, deltaxy = self.drloc(_c)
-            outs.drloc = [drloc_feats]
-            outs.deltaxy = [deltaxy]
-            outs.plz = [H] # plane size
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
