@@ -1114,8 +1114,32 @@ class Segformer(nn.Module):
         self.dim = num_patches0
 
         if use_drloc:
-            self.drloc = DenseRelativeLoc(
-                    in_dim = decoder_dim,
+            self.drloc1 = DenseRelativeLoc(
+                    in_dim = embed_dims[0],
+                    out_dim = 2 if drloc_mode == "l1" else 14,
+                    sample_size = sample_size,
+                    drloc_mode = drloc_mode,
+                    use_abs = use_abs
+            )
+
+            self.drloc2 = DenseRelativeLoc(
+                    in_dim = embed_dims[1],
+                    out_dim = 2 if drloc_mode == "l1" else 14,
+                    sample_size = sample_size,
+                    drloc_mode = drloc_mode,
+                    use_abs = use_abs
+            )
+
+            self.drloc3 = DenseRelativeLoc(
+                    in_dim = embed_dims[2],
+                    out_dim = 2 if drloc_mode == "l1" else 14,
+                    sample_size = sample_size,
+                    drloc_mode = drloc_mode,
+                    use_abs = use_abs
+            )
+
+            self.drloc4 = DenseRelativeLoc(
+                    in_dim = embed_dims[3],
                     out_dim = 2 if drloc_mode == "l1" else 14,
                     sample_size = sample_size,
                     drloc_mode = drloc_mode,
@@ -1281,18 +1305,32 @@ class Segformer(nn.Module):
         # SSUP
 
         if self.use_drloc:
-            H = c4.shape[-1]
+            H = c1.shape[-1]
+            drloc_feats, deltaxy = self.drloc1(c1)
+            outs.drloc1 = [drloc_feats]
+            outs.deltaxy1 = [deltaxy]
+            outs.plz1 = [H] # plane size
 
-            drloc_feats, deltaxy = self.drloc(c4)
-            outs.drloc = [drloc_feats]
-            outs.deltaxy = [deltaxy]
-            outs.plz = [H] # plane size
+            H = c2.shape[-1]
+            drloc_feats, deltaxy = self.drloc2(c2)
+            outs.drloc2 = [drloc_feats]
+            outs.deltaxy2 = [deltaxy]
+            outs.plz2 = [H] # plane size
+
+            H = c3.shape[-1]
+            drloc_feats, deltaxy = self.drloc3(c3)
+            outs.drloc3 = [drloc_feats]
+            outs.deltaxy3 = [deltaxy]
+            outs.plz3 = [H] # plane size
+
+            H = c4.shape[-1]
+            drloc_feats, deltaxy = self.drloc4(c4)
+            outs.drloc4 = [drloc_feats]
+            outs.deltaxy4 = [deltaxy]
+            outs.plz4 = [H] # plane size
 
 
         _c = self.linear_fuse(x)
-
-
-
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
