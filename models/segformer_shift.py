@@ -1281,9 +1281,9 @@ class Segformer(nn.Module):
         # SSUP
 
         if self.use_drloc:
-            H = _c4.shape[-1]
+            H = c4.shape[-1]
 
-            drloc_feats, deltaxy = self.drloc(_c4)
+            drloc_feats, deltaxy = self.drloc(c4)
             outs.drloc = [drloc_feats]
             outs.deltaxy = [deltaxy]
             outs.plz = [H] # plane size
