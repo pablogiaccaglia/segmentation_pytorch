@@ -1114,7 +1114,7 @@ class Segformer(nn.Module):
 
         if use_drloc:
             self.drloc = DenseRelativeLoc(
-                    in_dim = self.dim,
+                    in_dim = embed_dims[0]**2,
                     out_dim = 2 if drloc_mode == "l1" else 14,
                     sample_size = sample_size,
                     drloc_mode = drloc_mode,
@@ -1279,7 +1279,6 @@ class Segformer(nn.Module):
 
         if self.use_drloc:
             H = x.shape[-1]
-            print(H)
             drloc_feats, deltaxy = self.drloc(x)
             outs.drloc = [drloc_feats]
             outs.deltaxy = [deltaxy]
