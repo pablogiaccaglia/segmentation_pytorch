@@ -937,7 +937,7 @@ class Segformer(nn.Module):
             masked_attention = False,
             use_drloc = False,
             drloc_mode = "ce",
-            sample_size = 4,
+            sample_size = 32,
             use_abs = False
 
     ):
@@ -1146,7 +1146,11 @@ class Segformer(nn.Module):
                     use_abs = use_abs
             )
 
-            self.avg_pool = nn.AvgPool2d(embed_dims[0], stride = 2, padding = 1, count_include_pad = False)
+            self.avg_pool1 = nn.AvgPool2d(3, stride = 8, padding = 1, count_include_pad = False)
+            self.avg_pool2 = nn.AvgPool2d(3, stride = 4, padding = 1, count_include_pad = False)
+            self.avg_pool3 = nn.AvgPool2d(3, stride = 2, padding = 1, count_include_pad = False)
+            self.avg_pool4 = nn.AvgPool2d(3, stride = 1, padding = 1, count_include_pad = False)
+
 
         self.apply(self._init_weights)
         self.init_weights(pretrained = pretrained)
@@ -1306,24 +1310,32 @@ class Segformer(nn.Module):
 
         if self.use_drloc:
             H = c1.shape[-1]
+            c1 = self.avg_pool1(c1)
+
             drloc_feats, deltaxy = self.drloc1(c1)
             outs.drloc1 = [drloc_feats]
             outs.deltaxy1 = [deltaxy]
             outs.plz1 = [H] # plane size
 
             H = c2.shape[-1]
+            c2 = self.avg_pool2(c2)
+
             drloc_feats, deltaxy = self.drloc2(c2)
             outs.drloc2 = [drloc_feats]
             outs.deltaxy2 = [deltaxy]
             outs.plz2 = [H] # plane size
 
             H = c3.shape[-1]
+            c3 = self.avg_pool3(c3)
+
             drloc_feats, deltaxy = self.drloc3(c3)
             outs.drloc3 = [drloc_feats]
             outs.deltaxy3 = [deltaxy]
             outs.plz3 = [H] # plane size
 
             H = c4.shape[-1]
+            c4 = self.avg_pool4(c4)
+
             drloc_feats, deltaxy = self.drloc4(c4)
             outs.drloc4 = [drloc_feats]
             outs.deltaxy4 = [deltaxy]
