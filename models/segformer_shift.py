@@ -936,7 +936,7 @@ class Segformer(nn.Module):
             masked_attention = False,
             use_drloc = False,
             drloc_mode = "l1",
-            sample_size = 32,
+            sample_size = 4,
             use_abs = False
 
     ):
@@ -1276,14 +1276,11 @@ class Segformer(nn.Module):
         x = torch.cat([_c4, _c3, _c2, _c1], dim=1)
         outs = Munch()
         # SSUP
-        if self.use_drloc:
-            x_last = x[:,1:] # B, L, C
-            x_last = x_last.transpose(1, 2) # [B, C, L]
-            B, C, HW = x_last.size()
-            H = W = int(math.sqrt(HW))
-            x_last = x_last.view(B, C, H, W) # [B, C, H, W]
 
-            drloc_feats, deltaxy = self.drloc(x_last)
+        if self.use_drloc:
+            H = x.shape[-1]
+            print(H)
+            drloc_feats, deltaxy = self.drloc(x)
             outs.drloc = [drloc_feats]
             outs.deltaxy = [deltaxy]
             outs.plz = [H] # plane size
