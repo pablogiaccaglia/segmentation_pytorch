@@ -935,7 +935,7 @@ class Segformer(nn.Module):
             overlap_patch_embed = False,
             masked_attention = False,
             use_drloc = False,
-            drloc_mode = "l1",
+            drloc_mode = "ce",
             sample_size = 4,
             use_abs = False
 
