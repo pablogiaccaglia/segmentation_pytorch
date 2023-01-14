@@ -1308,8 +1308,10 @@ class Segformer(nn.Module):
         outs = Munch()
         # SSUP
 
+        _c = self.linear_fuse(x)
+
         if self.use_drloc:
-            H = c1.shape[-1]
+            """H = c1.shape[-1]
             c1 = self.avg_pool1(c1)
 
             drloc_feats, deltaxy = self.drloc1(c1)
@@ -1339,10 +1341,16 @@ class Segformer(nn.Module):
             drloc_feats, deltaxy = self.drloc4(c4)
             outs.drloc4 = [drloc_feats]
             outs.deltaxy4 = [deltaxy]
-            outs.plz4 = [H] # plane size
+            outs.plz4 = [H] # plane size"""
+
+            H = _c.shape[-1]
+            c4 = self.avg_pool4(_c)
+            drloc_feats, deltaxy = self.drloc4(c4)
+            outs.drloc4 = [drloc_feats]
+            outs.deltaxy4 = [deltaxy]
+            outs.plz4 = [H]  # plane size
 
 
-        _c = self.linear_fuse(x)
 
         x = self.dropout(_c)
         x = self.linear_pred(x)
