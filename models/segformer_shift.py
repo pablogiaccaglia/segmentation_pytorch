@@ -1115,7 +1115,7 @@ class Segformer(nn.Module):
 
         if use_drloc:
             self.drloc1 = DenseRelativeLoc(
-                    in_dim = embed_dims[-1],
+                    in_dim = embed_dims[0],
                     out_dim = 2 if drloc_mode == "l1" else 14,
                     sample_size = sample_size,
                     drloc_mode = drloc_mode,
@@ -1123,7 +1123,7 @@ class Segformer(nn.Module):
             )
 
             self.drloc2 = DenseRelativeLoc(
-                    in_dim = embed_dims[-1],
+                    in_dim = embed_dims[1],
                     out_dim = 2 if drloc_mode == "l1" else 14,
                     sample_size = sample_size,
                     drloc_mode = drloc_mode,
@@ -1131,7 +1131,7 @@ class Segformer(nn.Module):
             )
 
             self.drloc3 = DenseRelativeLoc(
-                    in_dim = embed_dims[-1],
+                    in_dim = embed_dims[2],
                     out_dim = 2 if drloc_mode == "l1" else 14,
                     sample_size = sample_size,
                     drloc_mode = drloc_mode,
@@ -1139,7 +1139,7 @@ class Segformer(nn.Module):
             )
 
             self.drloc4 = DenseRelativeLoc(
-                    in_dim = embed_dims[-1],
+                    in_dim = embed_dims[3],
                     out_dim = 2 if drloc_mode == "l1" else 14,
                     sample_size = sample_size,
                     drloc_mode = drloc_mode,
@@ -1147,9 +1147,9 @@ class Segformer(nn.Module):
             )
 
             self.avg_pool1 = nn.AvgPool2d(3, stride = 8, padding = 1, count_include_pad = False)
-            self.avg_pool2 = nn.AvgPool2d(3, stride = 8, padding = 1, count_include_pad = False)
-            self.avg_pool3 = nn.AvgPool2d(3, stride = 8, padding = 1, count_include_pad = False)
-            self.avg_pool4 = nn.AvgPool2d(3, stride = 8, padding = 1, count_include_pad = False)
+            self.avg_pool2 = nn.AvgPool2d(3, stride = 4, padding = 1, count_include_pad = False)
+            self.avg_pool3 = nn.AvgPool2d(3, stride = 2, padding = 1, count_include_pad = False)
+            self.avg_pool4 = nn.AvgPool2d(3, stride = 1, padding = 1, count_include_pad = False)
 
 
         self.apply(self._init_weights)
@@ -1309,32 +1309,32 @@ class Segformer(nn.Module):
         # SSUP
 
         if self.use_drloc:
-            H = _c1.shape[-1]
-            c1 = self.avg_pool1(_c1)
+            H = c1.shape[-1]
+            c1 = self.avg_pool1(c1)
+
             drloc_feats, deltaxy = self.drloc1(c1)
             outs.drloc1 = [drloc_feats]
             outs.deltaxy1 = [deltaxy]
             outs.plz1 = [H] # plane size
 
-            H = _c2.shape[-1]
-            c2 = self.avg_pool2(_c2)
-
+            H = c2.shape[-1]
+            c2 = self.avg_pool2(c2)
 
             drloc_feats, deltaxy = self.drloc2(c2)
             outs.drloc2 = [drloc_feats]
             outs.deltaxy2 = [deltaxy]
             outs.plz2 = [H] # plane size
 
-            H = _c3.shape[-1]
-            c3 = self.avg_pool3(_c3)
+            H = c3.shape[-1]
+            c3 = self.avg_pool3(c3)
 
             drloc_feats, deltaxy = self.drloc3(c3)
             outs.drloc3 = [drloc_feats]
             outs.deltaxy3 = [deltaxy]
             outs.plz3 = [H] # plane size
 
-            H = _c4.shape[-1]
-            c4 = self.avg_pool4(_c4)
+            H = c4.shape[-1]
+            c4 = self.avg_pool4(c4)
 
             drloc_feats, deltaxy = self.drloc4(c4)
             outs.drloc4 = [drloc_feats]
