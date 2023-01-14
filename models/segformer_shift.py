@@ -1345,7 +1345,7 @@ class Segformer(nn.Module):
 
             H = _c.shape[-1]
             c4 = self.avg_pool4(_c)
-            print(c4.shape)
+
             drloc_feats, deltaxy = self.drloc4(c4)
             outs.drloc4 = [drloc_feats]
             outs.deltaxy4 = [deltaxy]
