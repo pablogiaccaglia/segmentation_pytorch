@@ -1149,7 +1149,7 @@ class Segformer(nn.Module):
             self.avg_pool1 = nn.AvgPool2d(3, stride = 8, padding = 1, count_include_pad = False)
             self.avg_pool2 = nn.AvgPool2d(3, stride = 4, padding = 1, count_include_pad = False)
             self.avg_pool3 = nn.AvgPool2d(3, stride = 2, padding = 1, count_include_pad = False)
-            self.avg_pool4 = nn.AvgPool2d(3, stride = 1, padding = 1, count_include_pad = False)
+            self.avg_pool4 = nn.AvgPool2d(3, stride = 8, padding = 1, count_include_pad = False)
 
 
         self.apply(self._init_weights)
@@ -1345,6 +1345,7 @@ class Segformer(nn.Module):
 
             H = _c.shape[-1]
             c4 = self.avg_pool4(_c)
+            print(c4.shape)
             drloc_feats, deltaxy = self.drloc4(c4)
             outs.drloc4 = [drloc_feats]
             outs.deltaxy4 = [deltaxy]
